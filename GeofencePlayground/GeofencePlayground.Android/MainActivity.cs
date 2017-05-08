@@ -1,9 +1,4 @@
-﻿using System;
-
-using Android.App;
-using Android.Content;
-using Android.Runtime;
-using Android.Views;
+﻿using Android.App;
 using Android.Widget;
 using Android.OS;
 
@@ -26,7 +21,7 @@ namespace GeofencePlayground.Droid
 			Button button = FindViewById<Button> (Resource.Id.myButton);
 			
 			button.Click += delegate {
-				button.Text = string.Format ("{0} clicks!", count++);
+				button.Text = $"{count++} clicks!";
 			};
 		}
 	}
