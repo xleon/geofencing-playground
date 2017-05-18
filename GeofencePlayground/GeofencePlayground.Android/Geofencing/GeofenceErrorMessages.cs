@@ -10,7 +10,7 @@ namespace GeofencePlayground.Droid.Geofencing
             switch (errorCode)
             {
                 case GeofenceStatusCodes.GeofenceNotAvailable:
-                    return "Geofence not available";
+                    return "Geofence not available. Geolocation may be disabled in the device";
 
                 case GeofenceStatusCodes.GeofenceTooManyGeofences:
                     return "Too many geofences";

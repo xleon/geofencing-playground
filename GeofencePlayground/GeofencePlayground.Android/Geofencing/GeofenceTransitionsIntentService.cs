@@ -1,5 +1,4 @@
-﻿
-using Android.App;
+﻿using Android.App;
 using Android.Content;
 using Android.Gms.Location;
 using Splat;
@@ -14,6 +13,11 @@ namespace GeofencePlayground.Droid.Geofencing
 
         protected override void OnHandleIntent(Intent intent)
         {
+            AndroidBootstrap.Start();
+            GeofenceInitializer.Start();
+
+            this.Log().Info("Intent received");
+
             var geofencingEvent = GeofencingEvent.FromIntent(intent);
             if (geofencingEvent.HasError)
             {
@@ -23,15 +27,22 @@ namespace GeofencePlayground.Droid.Geofencing
             }
 
             var geofenceTransition = geofencingEvent.GeofenceTransition;
+            var geofences = geofencingEvent.TriggeringGeofences;
+            var location = geofencingEvent.TriggeringLocation;
 
             if (geofenceTransition == Geofence.GeofenceTransitionEnter)
             {
-                // StartService(new Intent(this, typeof(BeaconService)));
-                //mGoogleApiClient.Disconnect ();
+                foreach (var geofence in geofences)
+                {
+                    this.Log().Info($"Entered {geofence.RequestId} at {location.Latitude}/{location.Longitude}");
+                }
             }
             else if (geofenceTransition == Geofence.GeofenceTransitionExit)
             {
-                // StopService(new Intent(this, typeof(BeaconService)));
+                foreach (var geofence in geofences)
+                {
+                    this.Log().Info($"Exited {geofence.RequestId} at {location.Latitude}/{location.Longitude}");
+                }
             }
             else
             {

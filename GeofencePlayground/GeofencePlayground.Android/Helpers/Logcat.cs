@@ -4,11 +4,11 @@ using Splat;
 
 namespace GeofencePlayground.Droid.Helpers
 {
-    public class LogcatLogger : ILogger
+    public class Logcat : ILogger
     {
         public LogLevel Level { get; set; }
 
-        private const string Tag = "LogcatLogger";
+        private const string Tag = nameof(GeofencePlayground);
 
         public void Write(string message, LogLevel logLevel)
         {

@@ -14,32 +14,18 @@ using Splat;
 namespace GeofencePlayground.Droid.Geofencing
 {
     public class GeofencingManager : 
+        Java.Lang.Object,
         IGeofencingManager, 
         IEnableLogger, 
         GoogleApiClient.IConnectionCallbacks,
         GoogleApiClient.IOnConnectionFailedListener
     {
-        public event Action<bool> StatusChanged;
-        public event Action<ConnectionResult> ConnectionFailed;
-
-        public bool Started
-        {
-            get { return _started; }
-            private set
-            {
-                _started = value;
-                StatusChanged?.Invoke(_started);
-            }
-        }
-
-        public IntPtr Handle => _context.Handle;
-
         private readonly Context _context;
         private readonly IList<IGeofence> _geofences;
-        private readonly GoogleApiClient _googleApiClient;
-
+        private GoogleApiClient _client;
         private PendingIntent _geofencePendingIntent;
-        private bool _started;
+        private TaskCompletionSource<bool> _connectionTaskCompletionSource;
+        private TaskCompletionSource<bool> _disconnectionTaskCompletionSource;
 
         private PendingIntent GeofencePendingIntent 
         {
@@ -48,21 +34,25 @@ namespace GeofencePlayground.Droid.Geofencing
                 if (_geofencePendingIntent != null)
                     return _geofencePendingIntent;
 
-                var intent = new Intent(_context, typeof(GeofencingManager));
+                var intent = new Intent(_context, typeof(GeofenceTransitionsIntentService));
                 _geofencePendingIntent = PendingIntent.GetService(_context, 0, intent, PendingIntentFlags.UpdateCurrent);
                 return _geofencePendingIntent;
             }
         }
 
-        public GeofencingManager(Context context)
+        public GoogleApiClient Client
+            => _client ?? (_client = new GoogleApiClient.Builder(_context)
+                   .AddApi(LocationServices.API)
+                   .AddConnectionCallbacks(this)
+                   .AddOnConnectionFailedListener(this)
+                   .Build());
+
+        public GeofencingManager(Context context = null)
         {
-            _context = context;
+            _context = context ?? Application.Context;
             _geofences = new List<IGeofence>();
-            _googleApiClient = new GoogleApiClient.Builder(_context)
-                .AddConnectionCallbacks(this)
-                .AddOnConnectionFailedListener(this)
-                .AddApi(LocationServices.API)
-                .Build();
+
+            this.Log().Info($"{nameof(GeofencingManager)} created");
         }
 
         public void AddGeofenceData(params GeofenceData[] args)
@@ -83,39 +73,52 @@ namespace GeofencePlayground.Droid.Geofencing
             }
         }
 
-        public void Connect() 
-            => _googleApiClient?.Connect();
-
-        public void Disconnect() => 
-            _googleApiClient?.Disconnect();
-
         public async Task<bool> StartGeofencing()
         {
-            if(_geofences.Count == 0)
-                throw new Exception("You need to add geofences before starting");
+            this.Log().Info($"{nameof(StartGeofencing)} called");
 
-            if (!_googleApiClient.IsConnected)
+            if (_geofences.Count == 0)
             {
-                this.Log().Error("Cannot start geofencing because google api client is not connected");
+                this.Log().Error("No geofences found. Please add geofences before starting");
                 return false;
             }
 
-            var request = new GeofencingRequest.Builder()
-                .SetInitialTrigger(GeofencingRequest.InitialTriggerEnter)
-                .AddGeofences(_geofences)
-                .Build();
+            var availability = GoogleApiAvailability.Instance
+                .IsGooglePlayServicesAvailable(Application.Context);
+
+            if (availability != ConnectionResult.Success)
+            {
+                this.Log().Error("Google Api is not available");
+                return false;
+            }
+
+            this.Log().Info("Google Api is available");
+
+            var connected = await Connect();
+
+            if (!connected)
+            {
+                this.Log().Error("Could not connect to Google Api");
+                return false;
+            }
 
             try
             {
-                var status = await LocationServices.GeofencingApi
-                    .AddGeofencesAsync(_googleApiClient, request, GeofencePendingIntent);
+                var request = new GeofencingRequest.Builder()
+                    .SetInitialTrigger(GeofencingRequest.InitialTriggerEnter)
+                    .AddGeofences(_geofences)
+                    .Build();
 
-                Started = status.IsSuccess;
+                var statuses = await LocationServices.GeofencingApi
+                    .AddGeofencesAsync(Client, request, GeofencePendingIntent);
 
-                if (status.IsSuccess)
+                if (statuses.IsSuccess)
+                {
+                    this.Log().Info("Geofences added correctly!");
                     return true;
+                }
 
-                this.Log().Error(GeofenceErrorMessages.GetErrorString(_context, status.StatusCode));
+                this.Log().Error(GeofenceErrorMessages.GetErrorString(_context, statuses.StatusCode));
                 return false;
             }
             catch (Java.Lang.SecurityException securityException)
@@ -130,20 +133,49 @@ namespace GeofencePlayground.Droid.Geofencing
             return false;
         }
 
+        private Task<bool> Connect()
+        {
+            this.Log().Info("Trying to connect");
+
+            if (Client.IsConnected)
+            {
+                this.Log().Warn("Client is already connected");
+                return Task.FromResult(true);
+            }
+
+            _connectionTaskCompletionSource = new TaskCompletionSource<bool>();
+            this.Log().Info("Client is connecting");
+
+            if (Client.IsConnecting)
+                return _connectionTaskCompletionSource.Task;
+
+            Client.Connect();
+            return _connectionTaskCompletionSource.Task;
+        }
+
+        public Task<bool> Disconnect()
+        {
+            _disconnectionTaskCompletionSource = new TaskCompletionSource<bool>();
+            Client.Disconnect();
+            return _disconnectionTaskCompletionSource.Task;
+        }
+
+        
+
         public async Task<bool> StopGeofencing()
         {
-            if (!_googleApiClient.IsConnected)
+            if (!Client.IsConnected)
             {
-                this.Log().Error("Cannot stop geofencing because google api client is not connected");
+                this.Log().Error("Cannot stop geofencing because google api client is not yet connected");
                 return false;
             }
 
             try
             {
                 var status = await LocationServices.GeofencingApi
-                    .RemoveGeofencesAsync(_googleApiClient, GeofencePendingIntent);
+                    .RemoveGeofencesAsync(Client, GeofencePendingIntent);
 
-                Started = !status.IsSuccess;
+                // Started = !status.IsSuccess;
 
                 if (status.IsSuccess)
                     return true;
@@ -166,7 +198,7 @@ namespace GeofencePlayground.Droid.Geofencing
         public void OnConnectionFailed(ConnectionResult result)
         {
             this.Log().Warn($"Connection failed with code {result.ErrorCode}: {result.ErrorMessage}");
-            ConnectionFailed?.Invoke(result);
+            _connectionTaskCompletionSource?.TrySetResult(true);
 
             //if (result.HasResolution)
             //{
@@ -180,20 +212,33 @@ namespace GeofencePlayground.Droid.Geofencing
             //}
         }
 
-        public void OnConnected(Bundle connectionHint) 
-            => this.Log().Info("Connected to GoogleApiClient");
-
-        public void OnConnectionSuspended(int cause) 
-            => this.Log().Info($"Connection suspended. Cause: {cause}");
-
-        public void Dispose()
+        public void OnConnected(Bundle connectionHint)
         {
-            Disconnect();
-            Started = false;
-            _googleApiClient.Dispose();
-            _geofences.Clear();
-            _geofencePendingIntent = null;
+            this.Log().Info("Connected to GoogleApiClient");
+            _connectionTaskCompletionSource?.TrySetResult(true);
         }
+
+        public void OnConnectionSuspended(int cause)
+        {
+            this.Log().Info($"Connection suspended. Cause: {cause}");
+            _disconnectionTaskCompletionSource?.TrySetResult(false);
+        }
+
+
+        protected override void Dispose(bool disposing)
+        {
+
+            base.Dispose(disposing);
+        }
+
+        //public void Dispose()
+        //{
+        //    Disconnect();
+        //    Started = false;
+        //    _client.Dispose();
+        //    _geofences.Clear();
+        //    _geofencePendingIntent = null;
+        //}
 
         private void LogSecurityException(Java.Lang.SecurityException securityException)
         {

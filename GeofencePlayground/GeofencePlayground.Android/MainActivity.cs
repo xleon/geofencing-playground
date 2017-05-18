@@ -1,29 +1,44 @@
-﻿using Android.App;
+﻿using System.Linq;
+using Android.App;
 using Android.Widget;
 using Android.OS;
+using Android.Util;
+using GeofencePlayground.Droid.Helpers;
+using Splat;
+using SQLite;
 
 namespace GeofencePlayground.Droid
 {
 	[Activity (Label = "GeofencePlayground.Android", MainLauncher = true, Icon = "@drawable/icon")]
-	public class MainActivity : Activity
+	public class MainActivity : ListActivity
 	{
-		int count = 1;
+	    private SQLiteConnection _db;
 
-		protected override void OnCreate (Bundle bundle)
+        protected override void OnCreate (Bundle bundle)
 		{
 			base.OnCreate (bundle);
 
-			// Set our view from the "main" layout resource
-			SetContentView (Resource.Layout.Main);
+		    _db = Locator.CurrentMutable.GetService<IDatabaseService>().DefaultConnection;
 
-			// Get our button from the layout resource,
-			// and attach an event to it
-			Button button = FindViewById<Button> (Resource.Id.myButton);
-			
-			button.Click += delegate {
-				button.Text = $"{count++} clicks!";
-			};
+		    SetAdapter();
+
+            var logger = (SqliteLogger)Locator.CurrentMutable.GetService<ILogger>();
+		    logger.OnLogEntry += entry => SetAdapter();
 		}
+
+	    private void SetAdapter()
+	    {
+	        var logEntries = _db.Table<LogEntry>()
+	            .OrderByDescending(x => x.Time)
+	            .ToList();
+
+	        var messages = logEntries.Select(x => $"{x.Time}\n{x.Message}");
+
+	        RunOnUiThread(() =>
+	        {
+	            ListAdapter = new ArrayAdapter<string>(this, Android.Resource.Layout.SimpleListItem1, messages.ToList());
+            });
+        }
 	}
 }
 
