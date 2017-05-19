@@ -9,6 +9,7 @@ Goals achieved (in Android at the moment):
 3. Make sure geofences work when disabling and enabling back device GPS (location services)
 4. Make sure we get notifications (log entries) when entering or exiting a geofence circular region
 5. Persist log entries to a Sqlite database for further analysis
+6. Use latest `Xamarin.GooglePlayServices` nugets (42.1021.0 atm)
 
 TODO
 
