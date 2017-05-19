@@ -20,13 +20,6 @@ namespace GeofencePlayground
                 Radius = 100,
                 Latitude = 38.836528,
                 Longitude = 0.117524
-            },
-            new GeofenceRegion
-            {
-                Id = "Casa",
-                Radius = 100,
-                Latitude = 38.813514,
-                Longitude = 0.134352
             }
         };
     }
