@@ -1,8 +1,6 @@
 ﻿using System;
 using System.IO;
-using GeofencePlayground.Droid.Geofencing;
 using GeofencePlayground.Droid.Helpers;
-using GeofencePlayground.Geofencing;
 using Splat;
 
 namespace GeofencePlayground.Droid
@@ -23,7 +21,7 @@ namespace GeofencePlayground.Droid
 
             Locator.CurrentMutable.RegisterConstant(dbService, typeof(IDatabaseService));
             Locator.CurrentMutable.RegisterConstant(new SqliteLogger(), typeof(ILogger));
-            Locator.CurrentMutable.Register(() => new GeofencingManager(), typeof(IGeofencingManager));
+            //Locator.CurrentMutable.Register(() => new GeofencingManager(), typeof(IGeofencingManager));
 
             _initialized = true;
         }

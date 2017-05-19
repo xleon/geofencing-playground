@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Android.App;
 using Android.Content;
@@ -20,12 +21,26 @@ namespace GeofencePlayground.Droid.Geofencing
         GoogleApiClient.IConnectionCallbacks,
         GoogleApiClient.IOnConnectionFailedListener
     {
+        public static IGeofencingManager Current => Instance.Value;
+
+        private static readonly Lazy<IGeofencingManager> Instance 
+            = new Lazy<IGeofencingManager>(() => new GeofencingManager(), 
+                LazyThreadSafetyMode.PublicationOnly);
+
         private readonly Context _context;
         private readonly IList<IGeofence> _geofences;
         private GoogleApiClient _client;
         private PendingIntent _geofencePendingIntent;
         private TaskCompletionSource<bool> _connectionTaskCompletionSource;
         private TaskCompletionSource<bool> _disconnectionTaskCompletionSource;
+
+        private GeofencingManager(Context context = null)
+        {
+            _context = context ?? Application.Context;
+            _geofences = new List<IGeofence>();
+
+            this.Log().Info($"{nameof(GeofencingManager)} created with id {Guid.NewGuid()}");
+        }
 
         private PendingIntent GeofencePendingIntent 
         {
@@ -40,22 +55,14 @@ namespace GeofencePlayground.Droid.Geofencing
             }
         }
 
-        public GoogleApiClient Client
+        private GoogleApiClient Client
             => _client ?? (_client = new GoogleApiClient.Builder(_context)
                    .AddApi(LocationServices.API)
                    .AddConnectionCallbacks(this)
                    .AddOnConnectionFailedListener(this)
                    .Build());
 
-        public GeofencingManager(Context context = null)
-        {
-            _context = context ?? Application.Context;
-            _geofences = new List<IGeofence>();
-
-            this.Log().Info($"{nameof(GeofencingManager)} created");
-        }
-
-        public void AddGeofenceData(params GeofenceData[] args)
+        public IGeofencingManager AddGeofenceData(params GeofenceRegion[] args)
         {
             foreach (var data in args)
             {
@@ -66,11 +73,13 @@ namespace GeofencePlayground.Droid.Geofencing
                     .SetRequestId(data.Id)
                     .SetCircularRegion(data.Latitude, data.Longitude, data.Radius)
                     .SetExpirationDuration(data.Expiration)
-                    .SetTransitionTypes(Geofence.GeofenceTransitionEnter | Geofence.GeofenceTransitionExit)
+                    .SetTransitionTypes(Android.Gms.Location.Geofence.GeofenceTransitionEnter | Android.Gms.Location.Geofence.GeofenceTransitionExit)
                     .Build();
 
                 _geofences.Add(geofence);
             }
+
+            return this;
         }
 
         public async Task<bool> StartGeofencing()
@@ -114,7 +123,8 @@ namespace GeofencePlayground.Droid.Geofencing
 
                 if (statuses.IsSuccess)
                 {
-                    this.Log().Info("Geofences added correctly!");
+                    var ids = string.Join(", ", _geofences.Select(x => x.RequestId));
+                    this.Log().Info($"Geofences added correctly!: {ids}");
                     return true;
                 }
 
@@ -160,8 +170,6 @@ namespace GeofencePlayground.Droid.Geofencing
             return _disconnectionTaskCompletionSource.Task;
         }
 
-        
-
         public async Task<bool> StopGeofencing()
         {
             if (!Client.IsConnected)
@@ -198,7 +206,7 @@ namespace GeofencePlayground.Droid.Geofencing
         public void OnConnectionFailed(ConnectionResult result)
         {
             this.Log().Warn($"Connection failed with code {result.ErrorCode}: {result.ErrorMessage}");
-            _connectionTaskCompletionSource?.TrySetResult(true);
+            _connectionTaskCompletionSource?.TrySetResult(false);
 
             //if (result.HasResolution)
             //{

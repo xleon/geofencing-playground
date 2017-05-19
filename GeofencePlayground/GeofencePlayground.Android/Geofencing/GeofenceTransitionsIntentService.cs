@@ -14,7 +14,6 @@ namespace GeofencePlayground.Droid.Geofencing
         protected override void OnHandleIntent(Intent intent)
         {
             AndroidBootstrap.Start();
-            GeofenceInitializer.Start();
 
             this.Log().Info("Intent received");
 

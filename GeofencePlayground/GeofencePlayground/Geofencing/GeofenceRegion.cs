@@ -1,6 +1,6 @@
 ﻿namespace GeofencePlayground.Geofencing
 {
-    public class GeofenceData
+    public class GeofenceRegion
     {
         public string Id { get; set; }
         public double Latitude { get; set; }

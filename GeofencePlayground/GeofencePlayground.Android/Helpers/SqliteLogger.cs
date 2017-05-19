@@ -11,12 +11,14 @@ namespace GeofencePlayground.Droid.Helpers
         private readonly Logcat _logcat;
         private readonly SQLiteConnection _db;
 
-        public SqliteLogger()
+        public SqliteLogger(IDatabaseService databaseService = null)
         {
             _logcat = new Logcat();
 
-            var databaseService = Locator.CurrentMutable.GetService<IDatabaseService>();
-            _db = databaseService.DefaultConnection;
+            _db = databaseService?.DefaultConnection 
+                ?? Locator.Current.GetService<IDatabaseService>().DefaultConnection;
+
+            Write($"{nameof(SqliteLogger)} created", LogLevel.Info);
         }
 
         public LogLevel Level { get; set; }

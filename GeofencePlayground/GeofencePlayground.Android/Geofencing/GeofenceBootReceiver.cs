@@ -22,9 +22,9 @@ namespace GeofencePlayground.Droid.Geofencing
             {
                 AndroidBootstrap.Start();
 
-                this.Log().Info("ActionBootCompleted received. Now starting Geofencing...");
+                this.Log().Info(intent.Action);
 
-                GeofenceInitializer.Start();
+                var geo = GeofencingManager.Current;
 
             }
             catch (Exception e)

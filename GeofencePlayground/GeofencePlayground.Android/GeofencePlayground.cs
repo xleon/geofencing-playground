@@ -1,5 +1,8 @@
 ﻿using System;
+using System.Linq;
+using System.Threading.Tasks;
 using Android.App;
+using GeofencePlayground.Droid.Geofencing;
 using Splat;
 
 namespace GeofencePlayground.Droid
@@ -15,7 +18,12 @@ namespace GeofencePlayground.Droid
             base.OnCreate();
 
             AndroidBootstrap.Start();
-            GeofenceInitializer.Start();
+
+            this.Log().Info("Start from Main Application");
+
+            GeofencingManager.Current.AddGeofenceData(GeofenceData.Data.ToArray());
+
+            Task.Run(async () => await GeofencingManager.Current.StartGeofencing());
         }
     }
 }

@@ -4,7 +4,7 @@ namespace GeofencePlayground.Geofencing
 {
     public interface IGeofencingManager
     {
-        void AddGeofenceData(params GeofenceData[] args);
+        IGeofencingManager AddGeofenceData(params GeofenceRegion[] args);
         Task<bool> StartGeofencing();
         Task<bool> StopGeofencing();
     }

@@ -112,6 +112,7 @@
     <Compile Include="Geofencing\GeofenceErrorMessages.cs" />
     <Compile Include="Geofencing\GeofenceTransitionsIntentService.cs" />
     <Compile Include="Geofencing\GeofencingManager.cs" />
+    <Compile Include="Geofencing\ProviderChangeReceiver.cs" />
     <Compile Include="Helpers\Logcat.cs" />
     <Compile Include="Helpers\SqliteLogger.cs" />
     <Compile Include="MainActivity.cs" />
