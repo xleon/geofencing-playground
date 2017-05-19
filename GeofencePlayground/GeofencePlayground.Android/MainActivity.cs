@@ -2,14 +2,13 @@
 using Android.App;
 using Android.Widget;
 using Android.OS;
-using Android.Util;
 using GeofencePlayground.Droid.Helpers;
 using Splat;
 using SQLite;
 
 namespace GeofencePlayground.Droid
 {
-	[Activity (Label = "GeofencePlayground.Android", MainLauncher = true, Icon = "@drawable/icon")]
+    [Activity (Label = "GeofencePlayground.Android", MainLauncher = true, Icon = "@drawable/icon")]
 	public class MainActivity : ListActivity
 	{
 	    private SQLiteConnection _db;
