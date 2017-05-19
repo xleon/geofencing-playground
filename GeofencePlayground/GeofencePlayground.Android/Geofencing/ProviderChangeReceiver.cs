@@ -8,6 +8,7 @@ using Splat;
 
 namespace GeofencePlayground.Droid.Geofencing
 {
+    // Cannot use constant Intent.ActionProviderChanged due to this bug: https://bugzilla.xamarin.com/show_bug.cgi?id=56666
     [BroadcastReceiver(Exported = false)]
     [IntentFilter(new[] { "android.location.PROVIDERS_CHANGED" })]
     public class ProviderChangeReceiver : BroadcastReceiver, IEnableLogger
@@ -26,6 +27,8 @@ namespace GeofencePlayground.Droid.Geofencing
 
                 this.Log().Info($"\nGPS enabled: {gpsEnabled}\nNetwork enabled: {networkEnabled}");
 
+                // Only network provider is reacting to gps changes.
+                // The bug has been reported here: https://bugzilla.xamarin.com/show_bug.cgi?id=56667
                 if (networkEnabled)
                 {
                     Task.Run(async () => await GeofencingManager.Current.StartGeofencing());

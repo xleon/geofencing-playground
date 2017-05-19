@@ -12,6 +12,10 @@ using Android.OS;
 using GeofencePlayground.Geofencing;
 using Splat;
 
+[assembly: UsesPermission(Name = "android.permission.ACCESS_FINE_LOCATION")]
+[assembly: UsesPermission(Name = "android.permission.RECEIVE_BOOT_COMPLETED")]
+[assembly: UsesPermission(Name = "android.permission.INTERNET")]
+
 namespace GeofencePlayground.Droid.Geofencing
 {
     public class GeofencingManager : 
@@ -73,7 +77,7 @@ namespace GeofencePlayground.Droid.Geofencing
                     .SetRequestId(data.Id)
                     .SetCircularRegion(data.Latitude, data.Longitude, data.Radius)
                     .SetExpirationDuration(data.Expiration)
-                    .SetTransitionTypes(Android.Gms.Location.Geofence.GeofenceTransitionEnter | Android.Gms.Location.Geofence.GeofenceTransitionExit)
+                    .SetTransitionTypes(Geofence.GeofenceTransitionEnter | Geofence.GeofenceTransitionExit)
                     .Build();
 
                 _geofences.Add(geofence);
@@ -232,22 +236,6 @@ namespace GeofencePlayground.Droid.Geofencing
             _disconnectionTaskCompletionSource?.TrySetResult(false);
         }
 
-
-        protected override void Dispose(bool disposing)
-        {
-
-            base.Dispose(disposing);
-        }
-
-        //public void Dispose()
-        //{
-        //    Disconnect();
-        //    Started = false;
-        //    _client.Dispose();
-        //    _geofences.Clear();
-        //    _geofencePendingIntent = null;
-        //}
-
         private void LogSecurityException(Java.Lang.SecurityException securityException)
         {
             var message = "Invalid location permission. " +
@@ -256,5 +244,7 @@ namespace GeofencePlayground.Droid.Geofencing
 
             this.Log().Error(message);
         }
+
+        // TODO implement IDisposable
     }
 }
