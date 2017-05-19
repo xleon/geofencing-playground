@@ -15,3 +15,7 @@ TODO
 - A google maps view to add geofences
 - Local notifications
 - iOS app
+
+Important!
+
+If your app installed on external storage(SD card), you will never receive boot completed action (See class `GeofenceBootReceiver`). So you have to specify android:installLocation="internalOnly" in the manifest tag. This is because android device will broadcast BOOT_COMPLETED action before setting up the external storage.
